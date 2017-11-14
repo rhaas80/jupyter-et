@@ -6,7 +6,7 @@ import sys
 
 def get_pkg_cmd():
     for p in os.environ["PATH"].split(os.pathsep):
-        for cmd in ["apt-get","dnf","yum","zypper"]:
+        for cmd in ["apt-get","brew","dnf","yum","zypper"]:
             f = p+os.sep+cmd
             if os.path.exists(f):
                 return cmd
@@ -67,6 +67,41 @@ debk = {
     "jpeg":"libjpeg-turbo?-dev",
     "libtool":None,
     "libudev":"libudev-dev",
+    }
+
+homebrewk = {
+    "perl":None,
+    "gfortran":None,
+    "gcc":"gcc",
+    "g++":None,
+    "papi":None,
+    "gsl":"gsl",
+    "lapack":None,
+    "hdf5":"hdf5",
+    "mpi": "open-mpi",
+    "pkg-config":"pkg-config",
+    "subversion":"subversion",
+    "git":None,
+    "python":None,
+    "patch":None,
+    "make":None,
+    "numa":None,
+    "hwloc":"hwloc",
+    # there is an OpenSSL in homebrew and open-mpi actually pulls it in,
+    # however it is keg-only so pkg-config does not find it unless
+    # PKG_CONFIG_PATH is adjusted
+    "ssl":None,
+    "fftw":"fftw",
+    "curl":None,
+    "which":None,
+    "rsync":None,
+    "tar":None,
+    "hostname":None,
+    "xargs":None,
+    "xargs":None,
+    "jpeg":"jpeg",
+    "libtool":None,
+    "libudev":None,
     }
 
 redk = {
@@ -175,9 +210,11 @@ def check(h1,h2):
     for k in h2:
         assert k in h1, k
 
+# TODO: do not hard-code these
 check(debk,redk)
 check(redk,susek)
 check(redk,cmds)
+check(susek,homebrewk)
 
 install_cache = {}
 
@@ -212,6 +249,14 @@ def installed1(kcmd,cmd):
         install_cache[cmd] = ex
         if ex:
             return {"installed":1,"missing":[]}
+    if pkg_cmd == "brew":
+        if not cmd in install_cache:
+            ex = (os.system("brew info "+cmd+" | grep -q '^Not installed$'") != 0)
+            if ex:
+                install_cache[cmd] = {"installed":1,"missing":[]}
+	    else:
+                install_cache[cmd] = {"installed":0,"missing":[cmd]}
+        return install_cache[cmd]
     if pkg_cmd == "yum" or pkg_cmd == "dnf" or pkg_cmd == "zypper":
         if install_cache == {}:
             install_cache = {}
@@ -246,6 +291,9 @@ pkgs = None
 if pkg_cmd == "apt-get":
     pkgs = debk
     install_cmd = pkg_cmd+" install -y"
+elif pkg_cmd == "brew":
+    pkgs = homebrewk
+    install_cmd = pkg_cmd+" install"
 elif pkg_cmd == "dnf" or pkg_cmd == "yum":
     pkgs = redk
     install_cmd = pkg_cmd+" install -y"
@@ -284,14 +332,14 @@ def install():
             if type(c) == str:
                 if first:
                     first = False
-                    fd.write("%s %s" % (pkg_cmd, install))
+                    fd.write(install_cmd)
                 fd.write(' ')
                 fd.write(c)
             elif type(c) == list:
                 for cc in c:
                     if first:
                         first = False
-                        fd.write("%s %s" % (pkg_cmd, install))
+                        fd.write(install_cmd)
                     fd.write(' ')
                     fd.write(cc)
         else:
@@ -328,6 +376,7 @@ if __name__ == "__main__":
            fd.write("<td>"+gets("dnf install -y",redk[k])+"</td>")
            fd.write("<td>"+gets("yum install -y",redk[k])+"</td>")
            fd.write("<td>"+gets("zypper install -y",susek[k])+"</td>")
+           fd.write("<td>"+gets("brew install",homebrewk[k])+"</td>")
            fd.write("</tr>\n")
         fd.write("</table>\n")
         fd.close()
