@@ -245,10 +245,13 @@ def installed(kcmd,cmd):
 pkgs = None
 if pkg_cmd == "apt-get":
     pkgs = debk
+    install_cmd = pkg_cmd+" install -y"
 elif pkg_cmd == "dnf" or pkg_cmd == "yum":
     pkgs = redk
+    install_cmd = pkg_cmd+" install -y"
 elif pkg_cmd == "zypper":
     pkgs = susek
+    install_cmd = pkg_cmd+" install -y"
 else:
     raise Exception("No package manager")
 
@@ -273,7 +276,7 @@ def install():
         if os.path.exists("/etc/centos-release"):
             epel = installed("epel-release", None)
             if len(epel["missing"]) > 0:
-                fd.write(pkg_cmd+" install -y epel-release\n")
+                fd.write(install_cmd+" epel-release\n")
 
     first = True
     for c in answer["missing"]:
@@ -281,16 +284,14 @@ def install():
             if type(c) == str:
                 if first:
                     first = False
-                    fd.write(pkg_cmd)
-                    fd.write(" install -y")
+                    fd.write("%s %s" % (pkg_cmd, install))
                 fd.write(' ')
                 fd.write(c)
             elif type(c) == list:
                 for cc in c:
                     if first:
                         first = False
-                        fd.write(pkg_cmd)
-                        fd.write(" install -y")
+                        fd.write("%s %s" % (pkg_cmd, install))
                     fd.write(' ')
                     fd.write(cc)
         else:
@@ -300,14 +301,13 @@ def install():
     sys.stdout.write("Install file 'install-for-cactus.sh' has been written\n")
 
 def gets(c,k):
-    pre = c+" install -y "
     if type(k) == str:
-        return pre+k
+        return c+k
     elif type(k) == list:
         if type(k[0]) == list:
             return " ".join(k[0])
         elif type(k[0]) == str:
-            return pre+k[0]
+            return c+k[0]
         else:
             raise Exception()
     elif type(k) == type(None):
@@ -324,10 +324,10 @@ if __name__ == "__main__":
         for k in debk:
            fd.write('<tr>')
            fd.write("<td>"+k+"</td>")
-           fd.write("<td>"+gets("apt-get",debk[k])+"</td>")
-           fd.write("<td>"+gets("dnf",redk[k])+"</td>")
-           fd.write("<td>"+gets("yum",redk[k])+"</td>")
-           fd.write("<td>"+gets("zypper",susek[k])+"</td>")
+           fd.write("<td>"+gets("apt-get install -y",debk[k])+"</td>")
+           fd.write("<td>"+gets("dnf install -y",redk[k])+"</td>")
+           fd.write("<td>"+gets("yum install -y",redk[k])+"</td>")
+           fd.write("<td>"+gets("zypper install -y",susek[k])+"</td>")
            fd.write("</tr>\n")
         fd.write("</table>\n")
         fd.close()
